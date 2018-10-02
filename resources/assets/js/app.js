@@ -15,7 +15,9 @@ window.Vue = require('vue');
  * or customize the JavaScript scaffolding to fit your unique needs.
  */
 
-Vue.component('example-component', require('./components/ExampleComponent.vue'));
+ //此处需在引入vue之后引入
+require('./components/SelectDistrict');
+require('./components/UserAddressesCreateAndEdit');
 
 const app = new Vue({
     el: '#app'
