@@ -12,6 +12,7 @@ use Encore\Admin\Show;
 use Illuminate\Http\Request;
 use App\Exception\InvalidRequestException;
 use App\Http\Requests\Admin\HandleRefundRequest;
+use App\Exception\InternalException;
 
 class OrdersController extends Controller
 {
@@ -211,7 +212,7 @@ class OrdersController extends Controller
         }
         //是否同意退款
         if($request->input('agree')){
-
+            $this->_refundOrder($order);
         }else{
             //将拒绝退款理由放到订单的extra字段中
             $extra = $order->extra ?: [];
@@ -223,5 +224,44 @@ class OrdersController extends Controller
         }
 
         return $order;
+    }
+
+    protected function _refundOrder(Order $order)
+    {
+        //判断该订单的支付方式
+        switch($order->payment_method){
+            case 'wechat':
+                # code...
+                break;
+            case 'alipay':
+                //用我们刚刚写的方法来生成一个退款订单号
+                $refundNo = Order::getAvailableRefundNo();
+                //调用支付宝支付实例的refund方法
+                $ret = app('alipay')->refund([
+                    'out_trade_no' => $order->no,
+                    'refund_amount' => $order->total_amount,
+                    'out_request_no' => $refundNo,
+                ]);
+                //根据支付宝文档，如果返回值里有sub_code字段说明退款失败
+                if($ret->sub_code){
+                    $extra = $order->extra;
+                    $extra['refund_faild_code'] = $ret->sub_code;
+                    $order->update([
+                        'refund_no' => $refundNo,
+                        'refund_status' => Order::REFUND_STATUS_FAILED,
+                        'extra' => $extra,
+                    ]);
+                }else{
+                    $order->update([
+                        'refund_no' => $refundNo,
+                        'refund_status' => Order::REFUND_STATUS_SUCCESS,
+                    ]);
+                }
+                break;
+            default:
+                //原则上不可能出现，这个只是为了代码健壮性
+                throw new InternalException('未知订单支付方式：'.$order->payment_method);
+                break;
+        }
     }
 }
