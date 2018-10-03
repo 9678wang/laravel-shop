@@ -60,11 +60,23 @@ class OrdersController extends Controller
     		//将下单的商品从购物车中移除
     		$skuIds = collect($request->input('items'))->pluck('sku_id');
     		$user->cartItems()->whereIn('product_sku_id', $skuIds)->delete();
-    		
+
     		return $order;
     	});
 
     	$this->dispatch(new CloseOrder($order, config('app.order_ttl')));
     	return $order;
+    }
+
+    public function index(Request $request)
+    {
+    	$orders = Order::query()
+    		//使用with方法预加载，避免N+1问题
+    		->with(['items.product', 'items.productSku'])
+    		->where('user_id', $request->user()->id)
+    		->orderBy('created_at', 'desc')
+    		->paginate();
+
+    	return view('orders.index', ['orders' => $orders]);
     }
 }
