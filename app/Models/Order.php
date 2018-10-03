@@ -65,7 +65,7 @@ class Order extends Model
     		//如果模型的no字段为空
     		if(!$model->no){
     			//调用findAvilableNo生成订单流水号
-    			$modle->no = static::findAvailableNo();
+    			$model->no = static::findAvailableNo();
     			//如果生成失败，则终止创建订单
     			if(!$model->no){
     				return false;
@@ -76,7 +76,7 @@ class Order extends Model
 
     public function user()
     {
-    	return $this->belognsTo(User::class);
+    	return $this->belongsTo(User::class);
     }
 
     public function items()
@@ -84,7 +84,7 @@ class Order extends Model
     	return $this->hasMany(OrderItem::class);
     }
 
-    public function findAvailableNo()
+    public static function findAvailableNo()
     {
     	//订单流水号前缀
     	$prefix = date('YmdHis');
