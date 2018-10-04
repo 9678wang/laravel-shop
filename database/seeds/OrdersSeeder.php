@@ -45,14 +45,14 @@ class OrdersSeeder extends Seeder
         	]);
 
         	//将这笔订单的商品合并到商品集合只能够
-        	$products = $products->merge($items->pluck['product']);
+        	$products = $products->merge($items->pluck('product'));
         }
 
         //根据商品ID过滤掉重复的商品
         $products->unique('id')->each(function(Product $product){
         	//查出该商品的销量、评分、评价数
         	$result = OrderItem::query()
-        		->where('prodcut_id', $product->id)
+        		->where('product_id', $product->id)
         		->whereHas('order', function($query){
         			$query->whereNotNull('paid_at');
         		})

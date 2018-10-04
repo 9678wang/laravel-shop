@@ -78,8 +78,8 @@ return [
     |
     */
 
-    'locale' => 'zh-CN',
-    'faker_locale' => 'zh-CN',
+    'locale' => 'zh_CN',
+    'faker_locale' => 'zh_CN',
     'order_ttl' => 1800,
 
     /*
