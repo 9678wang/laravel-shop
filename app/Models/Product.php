@@ -21,6 +21,11 @@ class Product extends Model
     	return $this->hasMany(ProductSku::class);
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     public function getImageUrlAttribute()
     {
         //如果image字段本身就已经是完整的URL就直接返回
