@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Models\CouponCode;
 use App\Exceptions\CouponCodeUnavailableException;
 use App\Exceptions\InternalException;
+use App\Jobs\RefundInstallmentOrder;
 
 class OrderService
 {
@@ -178,6 +179,13 @@ class OrderService
                     ]);
                 }
                 break;
+            case 'installment':
+            	$order->update([
+            		'refund_no' => Order::getAvailableRefundNo(),
+            		'refund_status' => Order::REFUND_STATUS_PROCESSING,
+            	]);
+            	dispatch(new RefundInstallmentOrder($order));
+            	break;
             default:
                 //原则上不可能出现，这个只是为了代码健壮性
                 throw new InternalException('未知订单支付方式：'.$order->payment_method);
