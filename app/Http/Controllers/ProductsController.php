@@ -65,13 +65,68 @@ class ProductsController extends Controller
                     'multi_match' => [
                         'query' => $keyword,
                         'fields' => [
-                            'title^2',
+                            'title^3',
                             'long_title^2',
                             'category^2',
                             'description',
                             'skus_title',
                             'skus_description',
                             'properties_value',
+                        ],
+                    ],
+                ];
+            }
+        }
+        //只有当用户有输入搜索词或者使用了类目筛选的时候才会做聚合
+        if($search || isset($category)){
+            $params['body']['aggs'] = [
+                //这里的properties是我们给这个聚合操作的命名
+                //可以说其他字符串，与商品结构里的properties没有必然联系
+                'properties' => [
+                    //由于我们要聚合的属性是在nested类型字段下的属性，需要在外面套一层nested聚合查询
+                    'nested' => [
+                        //代表我们要查询的nested字段名为properties
+                        'path' => 'properties',
+                    ],
+                    //在nested聚合下嵌套聚合
+                    'aggs' => [
+                        //聚合名称
+                        'properties' => [
+                            //terms聚合，用于聚合相同的值
+                            'terms' => [
+                                //我们要聚合的字段名
+                                'field' => 'properties.name',
+                            ],
+                            'aggs' => [
+                                'value' => [
+                                    'terms' => [
+                                        'field' => 'properties.value',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+        }
+        $propertyFilters = [];
+        //从用户请求参数获取filters
+        if($filterString = $request->input('filters')){
+            //将获取到的字符串用符号|拆分成数组
+            $filterArray = explode('|', $filterString);
+            foreach($filterArray as $filter){
+                //将字符串用符号:拆分成两部分并且分别赋值给$name和$value连个变量
+                list($name, $value) = explode(':', $filter);
+                //将用筛选的属性添加到数组中
+                $propertyFilters[$name] = $value;
+                //追加到filter类型中
+                $params['body']['query']['bool']['filter'][] = [
+                    //由于我们要筛选的是nested类型下的属性，因此需要用nested查询
+                    'nested' => [
+                        'path' => 'properties',
+                        'query' => [
+                            ['term' => ['properties.name' => $name]], 
+                            ['term' => ['properties.value' => $value]],
                         ],
                     ],
                 ];
@@ -89,6 +144,23 @@ class ProductsController extends Controller
             'path' => route('products.index', false),
         ]);
 
+        $properties = [];
+        //如果返回结果里有aggregations字段，说明做了分面搜索
+        if(isset($result['aggregations'])){
+            //使用collect函数将返回值转为集合
+            $properties = collect($result['aggregations']['properties']['properties']['buckets'])
+                ->map(function($bucket){
+                    return [
+                        'key' => $bucket['key'],
+                        'values' => collect($bucket['value']['buckets'])->pluck('key')->all(),
+                    ];
+                })
+                ->filter(function($property) use($propertyFilters){
+                    //过滤掉只剩下一个值或者已经在筛选条件里的属性
+                    return count($property['values']) > 1 && !isset($propertyFilters[$property['key']]);
+                });
+        }
+
     	return view('products.index', [
     		'products' => $pager,
     		'filters' => [
@@ -96,6 +168,8 @@ class ProductsController extends Controller
     			'order' => $order,
     		],
             'category' => $category ?? null,
+            'properties' => $properties,
+            'propertyFilters' => $propertyFilters,
     	]);
     }
 
