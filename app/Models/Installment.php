@@ -47,7 +47,7 @@ class Installment extends Model
 
     public function items()
     {
-    	return $this->haaMany(InstallmentItem::class);
+    	return $this->hasMany(InstallmentItem::class);
     }
 
     public static function findAvailableNo()
