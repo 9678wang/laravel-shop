@@ -15,8 +15,8 @@ curl -H'Content-Type: application/json' -XPUT http://localhost:9200/products/_ma
     "skus":{
       "type": "nested",
       "properties": {
-        "title": {"type": "text", "analyzer": "ik_smart"},
-        "description": {"type": "text", "analyzer": "ik_smart"},
+        "title": {"type": "text", "analyzer": "ik_smart", "copy_to": "skus_title"},
+        "description": {"type": "text", "analyzer": "ik_smart", "copy_to": "skus_description"},
         "price": {"type": "scaled_float", "scaling_factor": 100}
       }
      },
@@ -24,8 +24,37 @@ curl -H'Content-Type: application/json' -XPUT http://localhost:9200/products/_ma
       "type": "nested",
       "properties": {
         "name": {"type": "keyword"},
-       	"value": {"type": "keyword"}
+       	"value": {"type": "keyword", "copy_to": "properties_name"}
       }
     }
   }
 }'
+<?php
+$params = [
+ 'index' => 'products',
+ 'type' => '_doc',
+ 'body' => [
+    'from' => 0,
+    'size' => 5,
+    'query' => [
+      'bool' => [
+        'filter' => [
+          ['term' => ['on_sale' => true]],
+        ],
+        'must' => [
+          [
+            'multi_match' => [
+              'query' => '256G',
+              'fields' => [
+                'skus_title',
+                'skus_description',
+                'properties_value',
+              ],
+            ],
+          ],
+        ],
+      ],
+    ],
+  ],
+ ],
+];
