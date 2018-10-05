@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Category;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\SearchBuilders\ProductSearchBuilder;
+use App\Services\ProductService;
 
 class ProductsController extends Controller
 {
@@ -67,10 +68,7 @@ class ProductsController extends Controller
         //通过colect函数将返回结果转为集合，并通过集合的pluck方法取到返回的商品ID数组
         $productIds = collect($result['hits']['hits'])->pluck('_id')->all();
 
-        $products = Product::query()
-            ->whereIn('id', $productIds)
-            ->orderByRaw(sprintf("FIND_IN_SET(id, '%s')", join(',', $productIds)))
-            ->get();
+        $products = Product::query()->byIds($productIds)->get();
         $pager = new LengthAwarePaginator($products, $result['hits']['total'], $perPage, $page, [
             'path' => route('products.index', false),
         ]);
@@ -104,7 +102,7 @@ class ProductsController extends Controller
     	]);
     }
 
-    public function show(Product $product, Request $request)
+    public function show(Product $product, Request $request, ProductService $service)
     {
     	//判断商品是否已经上架，如果没有上架则抛出异常
     	if(!$product->on_sale){
@@ -127,10 +125,14 @@ class ProductsController extends Controller
             ->limit(10)
             ->get();
 
+        $similarProductIds = $service->getSimilarProductIds($product, 4);
+        $similarProducts = Product::query()->byIds($similarProductIds)->get();
+
     	return view('products.show', [
             'product' => $product, 
             'favored' => $favored,
             'reviews' => $reviews,
+            'similar' => $similarProducts,
         ]);
     }
 
