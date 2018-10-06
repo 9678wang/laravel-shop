@@ -5,6 +5,7 @@ namespace App\Admin\Controllers;
 use App\Models\Product;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
+use App\Models\ProductSku;
 
 class SeckillProductsController extends CommonProductsController
 {
@@ -31,5 +32,24 @@ class SeckillProductsController extends CommonProductsController
 		//秒杀相关字段
 		$form->datetime('seckill.start_at', '秒杀开始时间')->rules('required|date');
 		$form->datetime('seckill.end_at', '秒杀结束时间')->rules('required|date');
+
+		//当商品表单保存完毕时触发
+		$form->saved(function(Form $form){
+			$product = $form->model();
+			//商品重新加载秒杀字段
+			$product->load(['seckill']);
+			//获取当前时间与秒杀结束时间的差值
+			$diff = $product->seckill->end_at->getTimestamp() - time();
+			$product->skus->each(function(ProductSku $sku) use($diff, $product){
+				//如果秒杀商品是上架并且未到结束时间
+				if($product->on_sale && $diff > 0){
+					//将剩余库存写入到redis中，并设置该值过期时间为秒杀截止时间
+					\Redis::sexex('seckill_sku_'.$sku->id, $diff, $sku->stock);
+				}else{
+					//否则将该sku的库存值从redis中删除
+					\Redis::del('seckill_sku_'.$sku->id);
+				}
+			})
+		})
 	}
 }
