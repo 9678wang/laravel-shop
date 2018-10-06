@@ -57,7 +57,7 @@ class ProductSearchBuilder
 		//如果参数不是数组则转为数组
 		$keywords = is_array($keywords) ? $keywords : [$keywords];
         foreach($keywords as $keyword){
-            $thhis->params['body']['query']['bool']['must'][] = [
+            $this->params['body']['query']['bool']['must'][] = [
                 'multi_match' => [
                     'query' => $keyword,
                     'fields' => [

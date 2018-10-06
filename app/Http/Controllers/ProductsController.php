@@ -63,7 +63,7 @@ class ProductsController extends Controller
     			}
     		}
     	}
-              
+
     	$result = app('es')->search($builder->getParams());
         //通过colect函数将返回结果转为集合，并通过集合的pluck方法取到返回的商品ID数组
         $productIds = collect($result['hits']['hits'])->pluck('_id')->all();
