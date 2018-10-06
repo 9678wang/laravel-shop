@@ -44,7 +44,7 @@ class SeckillProductsController extends CommonProductsController
 				//如果秒杀商品是上架并且未到结束时间
 				if($product->on_sale && $diff > 0){
 					//将剩余库存写入到redis中，并设置该值过期时间为秒杀截止时间
-					\Redis::sexex('seckill_sku_'.$sku->id, $diff, $sku->stock);
+					\Redis::setex('seckill_sku_'.$sku->id, $diff, $sku->stock);
 				}else{
 					//否则将该sku的库存值从redis中删除
 					\Redis::del('seckill_sku_'.$sku->id);
