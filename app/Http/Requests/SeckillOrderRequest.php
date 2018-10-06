@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductSku;
-use Illuminate\validation\Rule;
+use Illuminate\Validation\Rule;
 
 class SeckillOrderRequest extends Request
 {
