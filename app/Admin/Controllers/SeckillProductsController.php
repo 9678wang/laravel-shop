@@ -49,7 +49,7 @@ class SeckillProductsController extends CommonProductsController
 					//否则将该sku的库存值从redis中删除
 					\Redis::del('seckill_sku_'.$sku->id);
 				}
-			})
-		})
+			});
+		});
 	}
 }
